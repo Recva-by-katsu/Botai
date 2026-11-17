@@ -1,78 +1,101 @@
-# BotAI Telegram · KATSU AI
+# BotAI · ChatGPT versi Telegram (KATSU AI)
 
-Bot Telegram Node.js yang menggunakan [KATSU AI Autopilot](https://ai.katsuvip.eu.cc/docs), melalui `POST /v1/chat/completions`. Mendukung model `auto`, konteks percakapan, balasan panjang, indikator mengetik, serta pembatasan pengguna.
+Bot Telegram berbahasa Indonesia yang mengubah chat pribadi menjadi pengalaman ala **ChatGPT** — ditenagai [KATSU AI Autopilot](https://ai.katsuvip.eu.cc/docs) melalui `POST /v1/chat/completions`.
 
-## Persiapan
+## ✨ Fitur
+
+- **Streaming ala ChatGPT** — jawaban muncul bertahap di satu pesan yang disunting berkala (SSE `stream: true`), dengan indikator "sedang mengetik".
+- **Perenderan Markdown profesional** — teks tebal/miring, coret, tautan, daftar, heading, kutipan, dan blok kode dengan penanda bahasa (`<pre><code class="language-…">`). HTML di-escape sehingga jawaban AI tidak bisa merusak tampilan.
+- **Pemecahan pesan cerdas** — jawaban panjang dipecah menjadi beberapa pesan tanpa pernah memotong blok kode atau entitas format.
+- **Pemilih model inline** — `/model` mengambil daftar model langsung dari `GET /v1/models`, dengan navigasi halaman dan tanda ✅ pada model aktif.
+- **Tombol aksi pada tiap jawaban** — 💬 Chat Baru, ♻️ Ulangi (susun ulang jawaban), 🗑️ hapus pesan.
+- **Konteks percakapan** — riwayat tanya-jawab dibatasi `HISTORY_TURNS`; balas (reply) jawaban bot untuk menanyakan lanjutan dengan kutipan konteks.
+- **Pengaturan per sesi** — `/settings`: gaya jawaban (suhu 0.3 / 0.7 / 1.0) dan on/off streaming.
+- **Pembatas laju adil** — jendela geser per pengguna, plus antrean: satu generasi per pengguna, pesan berikutnya ditolak ramah selama proses.
+- **Aman secara default** — hanya chat pribadi, allowlist ID Telegram opsional, token tidak pernah tercetak di log, galat API tidak membocorkan isi respons.
+
+## 🚀 Menjalankan
 
 - Node.js **20 atau lebih baru**.
-- Token bot Telegram dari **@BotFather** (buat dengan `/newbot`).
-- API key KATSU AI dari pengelola/akun KATSU Anda.
-- Mesin yang dapat mengakses API Telegram dan KATSU AI melalui HTTPS.
-
-Jangan kirim token atau API key ke chat, dan jangan commit `.env`.
-
-## Menjalankan
+- Token bot dari **@BotFather** (`/newbot`).
+- API key KATSU AI.
 
 ```bash
 npm ci
 cp .env.example .env
-# Edit .env secara lokal, isi TELEGRAM_BOT_TOKEN dan KATSU_API_KEY
+# Edit .env, isi TELEGRAM_BOT_TOKEN dan KATSU_API_KEY
 npm start
 ```
 
-Buka bot Anda di Telegram, tekan **Start**, lalu kirim pertanyaan. Bot memakai **long polling** sehingga tidak memerlukan domain atau server webhook. Jalankan hanya satu instance per token. Jika token sebelumnya menggunakan webhook, hapus webhook melalui Telegram Bot API sebelum menjalankan bot ini.
+Bot memakai **long polling** — tidak butuh domain atau webhook. Jalankan **satu instance per token**; jika token sebelumnya dipakai webhook, hapus webhook dulu melalui Bot API Telegram.
 
-## Perintah
+### Docker
+
+```bash
+docker build -t botai .
+docker run --env-file .env --restart unless-stopped botai
+```
+
+## 💬 Perintah
 
 | Perintah | Fungsi |
 | --- | --- |
-| `/start`, `/help` | Petunjuk penggunaan |
-| `/reset` | Menghapus konteks percakapan lokal |
-| `/model` | Menampilkan model aktif |
+| `/start` | Kartu sambutan + menu utama |
+| `/help` | Panduan lengkap |
+| `/new`, `/reset` | Percakapan baru (hapus konteks) |
+| `/model` | Pilih model AI (tombol inline) |
+| `/settings` | Gaya jawaban & streaming |
+| `/status` | Model aktif, kuota, jumlah konteks |
 
-Bot hanya merespons **chat pribadi** untuk menghindari pengiriman isi grup secara tidak sengaja. Pesan nonteks belum didukung.
+## ⚙️ Konfigurasi `.env`
 
-## Konfigurasi `.env`
+| Variabel | Default | Keterangan |
+| --- | --- | --- |
+| `TELEGRAM_BOT_TOKEN` | — | **Wajib**; token @BotFather |
+| `KATSU_API_KEY` | — | **Wajib**; kredensial KATSU AI |
+| `KATSU_BASE_URL` | `https://ai.katsuvip.eu.cc` | Tanpa `/v1`, harus HTTPS |
+| `KATSU_AUTH_HEADER` | `Authorization` | Alternatif: `X-API-Key` |
+| `KATSU_MODEL` | `auto` | Model bawaan; bisa diganti via `/model` |
+| `TEMPERATURE` | `0.7` | Kreativitas jawaban (0–2) |
+| `MAX_TOKENS` | *(kosong)* | Batas token keluaran per jawaban |
+| `STREAM_ENABLED` | `true` | Streaming bertahap ala ChatGPT |
+| `API_TIMEOUT_SECONDS` | `90` | Batas tunggu API (1–300) |
+| `EDIT_INTERVAL_MS` | `2500` | Jeda penyuntingan pratinjau streaming |
+| `SYSTEM_PROMPT` | *(lihat contoh)* | Instruksi dasar AI |
+| `HISTORY_TURNS` | `10` | Pasangan tanya-jawab diingat (1–50) |
+| `MAX_QUESTION_LENGTH` | `4000` | Batas panjang pertanyaan |
+| `ALLOWED_USER_IDS` | *(kosong)* | Kosong = terbuka untuk semua |
+| `RATE_LIMIT_REQUESTS` | `20` | Kuota permintaan per pengguna |
+| `RATE_LIMIT_WINDOW_SECONDS` | `60` | Jendela pembatas laju |
+| `MAX_SESSIONS` | `500` | Batas sesi di memori |
+| `SESSION_TTL_MINUTES` | `60` | Sesi kedaluwarsa setelah diam |
 
-| Variabel | Default / fungsi |
-| --- | --- |
-| `TELEGRAM_BOT_TOKEN` | Wajib; token dari BotFather |
-| `KATSU_API_KEY` | Wajib; kredensial KATSU AI |
-| `KATSU_BASE_URL` | `https://ai.katsuvip.eu.cc` (tanpa `/v1`) |
-| `KATSU_AUTH_HEADER` | `Authorization` → `Bearer <key>`; alternatif `X-API-Key` |
-| `KATSU_MODEL` | `auto`; bisa diganti model yang tersedia di layanan |
-| `ALLOWED_USER_IDS` | ID pengguna Telegram dipisahkan koma; kosong berarti terbuka untuk semua |
-| `SYSTEM_PROMPT` | Instruksi dasar AI |
-| `HISTORY_TURNS` | `10`; jumlah pasangan pesan dalam konteks, maksimal 50 |
-| `MAX_SESSIONS` | `500`; batas sesi di memori |
-| `SESSION_TTL_MINUTES` | `60`; sesi dibersihkan saat pesan berikutnya diproses |
-| `API_TIMEOUT_SECONDS` | `90`; batas tunggu respons API |
+Jangan kirim token/API key ke chat, dan jangan commit `.env`.
 
-**Disarankan mengisi `ALLOWED_USER_IDS`** agar kuota API tidak digunakan orang lain. Semua pengguna bot menggunakan satu API key dan berbagi kuota. Tidak ada retry otomatis untuk menghindari permintaan/biaya ganda. Pemrosesan pesan berurutan; permintaan lama dapat menunda pesan pengguna lain. Untuk penggunaan pribadi atau skala kecil.
+## 🧱 Arsitektur
 
-### Catatan integrasi API
-
-Payload mengikuti skema OpenAPI KATSU: `model`, `messages` (`role` dan `content`), serta `stream: false`. Jawaban dibaca dari `choices[0].message.content` seperti format OpenAI-compatible. Skema publik tidak merinci autentikasi maupun struktur respons sukses; default Bearer dan format respons ini perlu dikonfirmasi dengan kredensial Anda. Jika deployment menggunakan header `X-API-Key`, ubah konfigurasi terkait.
-
-## Privasi dan penyimpanan
-
-Riwayat hanya disimpan sementara di RAM dan tidak ditulis ke disk. Restart menghapus semua sesi; `/reset` menghapus sesi pengguna. Konteks yang dikirim ke KATSU mencakup system prompt dan riwayat terbaru. Penghapusan lokal tidak menghapus data yang mungkin disimpan penyedia API. Jangan kirim informasi sensitif. Bot tidak memakai endpoint memory/knowledge bersama agar data pengguna tidak tercampur.
-
-Jawaban dikirim sebagai teks biasa (tanpa parse Markdown), dibagi menjadi potongan aman untuk Telegram. Jawaban di atas 24.000 karakter dikirim sebagai file teks.
-
-## Pemeriksaan
-
-```bash
-npm run check
-npm test
+```
+src/
+├── index.js      # Orkestrasi bot: perintah, tombol inline, alur generasi
+├── ai.js         # Klien KATSU AI: chat (streaming SSE + fallback), daftar model
+├── markdown.js   # Markdown → HTML Telegram + pemecah pesan aman blok kode
+├── session.js    # Penyimpanan sesi & riwayat di memori (TTL, eviksi LRU)
+├── ratelimit.js  # Pembatas laju jendela geser per pengguna
+├── ui.js         # Teks & keyboard inline (satu tempat, mudah diubah)
+└── config.js     # Validasi variabel lingkungan
 ```
 
-Tes memakai mock dan tidak menghabiskan kuota. Pengujian end-to-end membutuhkan kredensial asli dan akses jaringan ke kedua layanan; belum dilakukan di lingkungan pengembangan ini.
+Alur satu pertanyaan: **validasi & pembatas laju → placeholder "🧠 Sedang berpikir…" → streaming/pratinjau bertahap → render Markdown → potong aman → kirim + tombol aksi → simpan riwayat.**
 
-## Pemecahan masalah
+## 🧪 Pengembangan
 
-- **401/403**: periksa key, izin akun, dan jenis header autentikasi.
-- **429**: kuota/rate limit KATSU tercapai; tunggu atau hubungi penyedia.
-- **Gagal startup**: periksa token bot, akses jaringan, webhook lama, serta proses bot lain dengan token sama.
-- **Timeout**: periksa ketersediaan layanan atau tingkatkan `API_TIMEOUT_SECONDS` (maksimal 300).
-- **Format respons tidak sesuai**: pastikan server mengembalikan chat completion OpenAI-compatible.
+```bash
+npm test   # unit test semua modul (node:test)
+npm check  # pemeriksaan sintaks semua berkas src
+```
+
+## 🩺 Masalah umum
+
+- **Bot tidak merespons** — pastikan hanya satu instance berjalan dan webhook lama sudah dihapus.
+- `401/403 KATSU AI` — API key salah atau ditolak; periksa `KATSU_API_KEY`.
+- Jawaban berhenti di tengah — koneksi API terputus; tekan ♻️ **Ulangi** untuk menyusun ulang.
